@@ -1,0 +1,38 @@
+query ListAllProducts @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it only lists products.") {
+  products {
+    id
+    name
+    description
+    price
+    SKU
+    category
+    stockQuantity
+    supplier
+    weight
+  }
+}
+
+query GetCustomerById($customerId: UUID!) @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users as it requires a specific customer ID.") {
+  customer(id: $customerId) {
+    id
+    name
+    email
+    phone
+    address
+    contactPerson
+    industry
+    createdAt
+  }
+}
+
+mutation CreateSalesOrder($data: SalesOrder_Data!) @auth(level: USER) {
+  salesOrder_insert(data: $data) {
+    id
+  }
+}
+
+mutation UpdateProductStock($productId: UUID!, $newStockQuantity: Int!) @auth(expr: "auth.token.admin == true") {
+  product_update(key: {id: $productId}, data: {stockQuantity: $newStockQuantity}) {
+    id
+  }
+}

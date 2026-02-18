@@ -1,0 +1,120 @@
+mutation CreateSeedData @transaction @auth(level: PUBLIC, insecureReason: "This is a seed data mutation and is safe to be public.") {
+  customer1: customer_insert(data: {
+    id: "277e38c6-2c5d-4f10-911e-214470c1a851",
+    name: "Acme Corp",
+    email: "contact@acmecorp.com",
+    address: "123 Business Rd",
+    phone: "555-123-4567",
+    industry: "Manufacturing",
+    contactPerson: "Jane Doe",
+    createdAt: "2023-01-15T10:00:00Z"
+  })
+  customer2: customer_insert(data: {
+    id: "a0f3d4b9-1e7a-4c2f-8b01-9c6d7e2f1a32",
+    name: "Globex Inc.",
+    email: "info@globex.com",
+    address: "456 Commerce St",
+    phone: "555-987-6543",
+    industry: "Technology",
+    contactPerson: "John Smith",
+    createdAt: "2023-02-20T11:30:00Z"
+  })
+  product1: product_insert(data: {
+    id: "b1c3d5e7-9f1a-4b2c-8d3e-0f4a5b6c7d8e",
+    name: "Widget Pro",
+    SKU: "WP001",
+    description: "High-performance widget for professionals.",
+    price: 99.99,
+    stockQuantity: 150,
+    category: "Electronics",
+    supplier: "Tech Supplies Inc.",
+    weight: 0.5,
+    createdAt: "2023-03-01T09:00:00Z"
+  })
+  product2: product_insert(data: {
+    id: "c2d4e6f8-0a2b-5c3d-9e4f-1a5b6c7d8e9f",
+    name: "Gizmo Lite",
+    SKU: "GL002",
+    description: "Lightweight and portable gizmo for everyday use.",
+    price: 49.99,
+    stockQuantity: 300,
+    category: "Gadgets",
+    supplier: "Innovation Co.",
+    weight: 0.2,
+    createdAt: "2023-03-05T14:15:00Z"
+  })
+  salesOrder1: salesOrder_insert(data: {
+    id: "d3e5f7a9-1b3c-6d4e-0f5a-2b6c7d8e9f0a",
+    customerId: "277e38c6-2c5d-4f10-911e-214470c1a851",
+    orderDate: "2023-03-10",
+    totalAmount: 249.97,
+    status: "Pending",
+    shippingAddress: "123 Business Rd, City, State",
+    paymentMethod: "Credit Card",
+    createdAt: "2023-03-10T16:00:00Z"
+  })
+  salesOrder2: salesOrder_insert(data: {
+    id: "e4f6a8b0-2c4d-7e5f-1a6b-3c7d8e9f0a1b",
+    customerId: "a0f3d4b9-1e7a-4c2f-8b01-9c6d7e2f1a32",
+    orderDate: "2023-03-12",
+    totalAmount: 149.97,
+    status: "Completed",
+    shippingAddress: "456 Commerce St, Town, Country",
+    paymentMethod: "PayPal",
+    createdAt: "2023-03-12T09:45:00Z"
+  })
+  salesOrderItem1: salesOrderItem_insert(data: {
+    salesOrderId: "d3e5f7a9-1b3c-6d4e-0f5a-2b6c7d8e9f0a",
+    productId: "b1c3d5e7-9f1a-4b2c-8d3e-0f4a5b6c7d8e",
+    quantity: 2,
+    unitPrice: 99.99,
+    discount: 0.0
+  })
+  salesOrderItem2: salesOrderItem_insert(data: {
+    salesOrderId: "d3e5f7a9-1b3c-6d4e-0f5a-2b6c7d8e9f0a",
+    productId: "c2d4e6f8-0a2b-5c3d-9e4f-1a5b6c7d8e9f",
+    quantity: 1,
+    unitPrice: 49.99,
+    discount: 0.0
+  })
+  salesOrderItem3: salesOrderItem_insert(data: {
+    salesOrderId: "e4f6a8b0-2c4d-7e5f-1a6b-3c7d8e9f0a1b",
+    productId: "b1c3d5e7-9f1a-4b2c-8d3e-0f4a5b6c7d8e",
+    quantity: 1,
+    unitPrice: 99.99,
+    discount: 0.0
+  })
+  salesOrderItem4: salesOrderItem_insert(data: {
+    salesOrderId: "e4f6a8b0-2c4d-7e5f-1a6b-3c7d8e9f0a1b",
+    productId: "c2d4e6f8-0a2b-5c3d-9e4f-1a5b6c7d8e9f",
+    quantity: 1,
+    unitPrice: 49.99,
+    discount: 0.0
+  })
+  employee1: employee_insert(data: {
+    id: "f5a7b9c1-3d5e-8f6a-2b7c-4d8e9f0a1b2c",
+    firstName: "Alice",
+    lastName: "Johnson",
+    employeeID: "EMP001",
+    department: "Sales",
+    hireDate: "2022-05-01",
+    jobTitle: "Sales Manager",
+    email: "alice.j@example.com",
+    phone: "555-111-2222",
+    salary: 75000.00,
+    createdAt: "2022-05-01T08:00:00Z"
+  })
+  employee2: employee_insert(data: {
+    id: "g6b8d0e2-4f6a-9b7c-3d8e-5f9a0b1c2d3e",
+    firstName: "Bob",
+    lastName: "Williams",
+    employeeID: "EMP002",
+    department: "Marketing",
+    hireDate: "2022-06-15",
+    jobTitle: "Marketing Specialist",
+    email: "bob.w@example.com",
+    phone: "555-333-4444",
+    salary: 60000.00,
+    createdAt: "2022-06-15T09:00:00Z"
+  })
+}

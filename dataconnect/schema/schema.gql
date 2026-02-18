@@ -1,0 +1,52 @@
+type Customer @table {
+  name: String!
+  email: String!
+  phone: String
+  address: String
+  contactPerson: String
+  industry: String
+  createdAt: Timestamp!
+}
+
+type Product @table {
+  name: String!
+  SKU: String!
+  price: Float!
+  stockQuantity: Int!
+  description: String
+  category: String
+  weight: Float
+  supplier: String
+  createdAt: Timestamp!
+}
+
+type SalesOrder @table {
+  customer: Customer!
+  orderDate: Date!
+  totalAmount: Float!
+  status: String!
+  shippingAddress: String
+  paymentMethod: String
+  createdAt: Timestamp!
+}
+
+type SalesOrderItem @table(key: ["salesOrder", "product"]) {
+  salesOrder: SalesOrder!
+  product: Product!
+  quantity: Int!
+  unitPrice: Float!
+  discount: Float
+}
+
+type Employee @table {
+  firstName: String!
+  lastName: String!
+  employeeID: String!
+  department: String!
+  hireDate: Date!
+  email: String
+  phone: String
+  jobTitle: String
+  salary: Float
+  createdAt: Timestamp!
+}

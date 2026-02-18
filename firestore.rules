@@ -1,0 +1,20 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+  
+    function isSuperAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/system_admins/$(request.auth.uid));
+    }
+    
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    match /companies/{companyId} {
+      // Ejemplo: Un usuario normal solo lee su propia empresa
+      allow read: if request.auth != null; // Mejoraremos esto después
+    }
+  }
+}
