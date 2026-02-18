@@ -26,3 +26,5 @@ dist-ssr
 # Yarn
 .yarn/*
 yarn.lock
+
+.env
