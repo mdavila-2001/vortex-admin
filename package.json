@@ -3,6 +3,12 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "author": "mdavila-2001",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdavila-2001/vortex-admin.git"
+  },
   "scripts": {
     "preinstall": "npx only-allow yarn",
     "dev": "vite",
