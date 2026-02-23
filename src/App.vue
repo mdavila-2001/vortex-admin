@@ -4,6 +4,7 @@ import { auth } from './services/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import SandBox from './views/SandBox.vue'
 import LoginView from './modules/auth/LoginView.vue'
+import Layout from './components/layout/Layout.vue'
 
 const isAuthReady = ref(false)
 const user = ref(null)
@@ -23,7 +24,9 @@ onMounted(() => {
 
   <LoginView v-else-if="!user" />
 
-  <router-view v-else />
+  <Layout v-else>
+    <router-view />
+  </Layout>
   <!-- <SandBox /> -->
 </template>
 
