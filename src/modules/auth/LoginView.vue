@@ -208,9 +208,6 @@ const handleLogin = async () => {
   overflow: hidden;
 }
 
-/* ==========================================================================
-   LADO IZQUIERDO: BRANDING
-   ========================================================================== */
 .brand-section {
   position: relative;
   display: none; /* Oculto en móviles */
@@ -285,7 +282,6 @@ const handleLogin = async () => {
   margin-bottom: 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #cbd5e1;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

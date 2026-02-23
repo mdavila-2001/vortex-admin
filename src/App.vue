@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { auth } from './services/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
-import SandBox from './views/SandBox.vue'
 import LoginView from './modules/auth/LoginView.vue'
 import Layout from './components/layout/Layout.vue'
 
@@ -27,7 +26,6 @@ onMounted(() => {
   <Layout v-else>
     <router-view />
   </Layout>
-  <!-- <SandBox /> -->
 </template>
 
 <style scoped>

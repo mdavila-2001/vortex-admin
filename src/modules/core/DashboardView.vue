@@ -7,7 +7,7 @@ const router = useRouter()
 
 const handleLogout = async () => {
   await signOut(auth)
-  router.push('/seed') // o cambiar a '/login' cuando exista
+  router.push('/') // o cambiar a '/login' cuando exista
 }
 </script>
 

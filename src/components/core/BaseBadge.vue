@@ -31,7 +31,7 @@ defineProps({
   display: inline-flex;
   align-items: center;
   padding: 0.125rem 0.625rem; /* py-0.5 px-2.5 */
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-pill);
   font-size: 0.75rem; /* text-xs */
   font-weight: 500;
   font-family: var(--font-family);
