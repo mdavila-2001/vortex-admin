@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { auth } from './services/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
+import { useAuthStore } from './store/auth'
 import LoginView from './modules/auth/LoginView.vue'
 import Layout from './components/layout/Layout.vue'
 
@@ -9,8 +10,16 @@ const isAuthReady = ref(false)
 const user = ref(null)
 
 onMounted(() => {
-  onAuthStateChanged(auth, (currentUser) => {
-    user.value = currentUser
+  onAuthStateChanged(auth, async (currentUser) => {
+    if (currentUser) {
+      // Usuario autenticado → cargar perfil desde Firestore
+      await useAuthStore.loadUserProfile(currentUser.uid)
+      user.value = currentUser
+    } else {
+      // Logout → limpiar store
+      useAuthStore.clear()
+      user.value = null
+    }
     isAuthReady.value = true
   })
 })

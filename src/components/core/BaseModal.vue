@@ -52,8 +52,12 @@ const closeModal = () => {
   background: transparent;
   max-width: 900px;
   width: 90%;
-  border-radius: var(--radius-xl);
+  border-radius: var(--radius-lg);
   outline: none;
+  /* Truco para centrar el modal en Vue/Dialog nativo */
+  margin: auto;
+  position: fixed;
+  inset: 0;
 }
 
 /* El fondo oscuro difuminado que pone el <dialog> nativo */
@@ -63,13 +67,14 @@ const closeModal = () => {
 }
 
 .modal-wrapper {
-  background: rgba(30, 41, 59, 0.85); /* Glass panel */
+  background: var(--color-bg-surface); /* Glass panel */
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: var(--shadow-card);
   border-radius: inherit;
   display: flex;
   flex-direction: column;
+  margin: auto; /* Centrar de forma universal con flex/grid o si el dialog tiene dimensiones concretas */
 }
 
 .modal-header {
@@ -77,27 +82,27 @@ const closeModal = () => {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .modal-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: white;
+  color: var(--color-text-main);
   margin: 0;
 }
 
 .close-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--color-text-muted);
   cursor: pointer;
   border-radius: 50%;
   padding: 0.25rem;
   display: flex;
   transition: all 0.2s;
 }
-.close-btn:hover { background: rgba(255, 255, 255, 0.1); color: white; }
+.close-btn:hover { background: var(--color-row-hover); color: var(--color-text-main); }
 
 .modal-body { padding: 2rem; }
 

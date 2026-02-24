@@ -1,8 +1,9 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { auth } from '../../services/firebase'
 import { signOut } from 'firebase/auth'
+import { useAuthStore } from '../../store/auth'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false }
@@ -11,11 +12,6 @@ const emit = defineEmits(['close'])
 
 const router = useRouter()
 const route = useRoute()
-
-const currentUser = ref({
-  name: 'Juan Perez',
-  role: 'Admin'
-})
 
 // Cerrar sidebar al cambiar de ruta (solo relevante en móvil)
 watch(() => route.path, () => {
@@ -52,7 +48,7 @@ const handleLogout = async () => {
             <span class="material-symbols-outlined text-white">storm</span>
           </div>
           <div class="logo-text">
-            <h1>Vortex ERP</h1>
+            <h1>{{ useAuthStore.company?.name || 'Vortice ERP' }}</h1>
             <span>Enterprise</span>
           </div>
           <!-- Botón cerrar en móvil -->
@@ -99,8 +95,8 @@ const handleLogout = async () => {
               <div class="status-dot"></div>
             </div>
             <div class="user-info">
-              <span class="user-name">{{ currentUser.name }}</span>
-              <span class="user-role">{{ currentUser.role }}</span>
+              <span class="user-name">{{ useAuthStore.user?.first_name || 'Usuario' }}</span>
+              <span class="user-role">{{ useAuthStore.user?.roleLabel || 'Sin Rol' }}</span>
             </div>
             <span class="material-symbols-outlined logout-icon">logout</span>
           </button>
@@ -117,7 +113,7 @@ const handleLogout = async () => {
           <span class="material-symbols-outlined text-white">storm</span>
         </div>
         <div class="logo-text">
-          <h1>Vortex ERP</h1>
+          <h1>{{ useAuthStore.company?.name || 'Vortex ERP' }}</h1>
           <span>Enterprise</span>
         </div>
       </div>
@@ -160,8 +156,8 @@ const handleLogout = async () => {
             <div class="status-dot"></div>
           </div>
           <div class="user-info">
-            <span class="user-name">{{ currentUser.name }}</span>
-            <span class="user-role">{{ currentUser.role }}</span>
+            <span class="user-name">{{ useAuthStore.user?.name || 'Usuario' }}</span>
+            <span class="user-role">{{ useAuthStore.user?.roleLabel || 'Sin Rol' }}</span>
           </div>
           <span class="material-symbols-outlined logout-icon">logout</span>
         </button>

@@ -1,6 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 import BaseModal from '../../../components/core/BaseModal.vue'
+import BaseInput from '../../../components/core/BaseInput.vue'
+import BaseSelect from '../../../components/core/BaseSelect.vue'
+import BaseButton from '../../../components/core/BaseButton.vue'
 
 const props = defineProps({
   isOpen: Boolean
@@ -8,7 +11,6 @@ const props = defineProps({
 
 const emit = defineEmits(['update:isOpen', 'save'])
 
-// Variables del formulario
 const product = ref({
   name: '',
   sku: '',
@@ -21,12 +23,10 @@ const product = ref({
 const imageFile = ref(null)
 const imagePreview = ref(null)
 
-// Simular click en el input de archivo oculto
 const triggerFileInput = () => {
   document.getElementById('file-upload').click()
 }
 
-// Pre-visualizar la imagen antes de subirla a Firebase
 const handleFileChange = (event) => {
   const file = event.target.files[0]
   if (file) {
@@ -36,7 +36,6 @@ const handleFileChange = (event) => {
 }
 
 const handleSave = () => {
-  // Aquí enviaremos los datos a InventoryView para que haga la lógica de Firebase
   emit('save', { data: product.value, image: imageFile.value })
 }
 </script>
@@ -47,103 +46,111 @@ const handleSave = () => {
     @update:isOpen="emit('update:isOpen', $event)"
     title="Agregar Nuevo Producto"
   >
-    <form @submit.prevent="handleSave" class="flex flex-col gap-6">
+    <form @submit.prevent="handleSave" class="modal-form">
       
-      <div class="flex flex-col md:flex-row gap-8">
-        <div class="w-full md:w-1/3 flex flex-col gap-4">
-          <label class="text-sm font-medium text-slate-300">Imagen del Producto</label>
+      <div class="form-layout">
+        <div class="col-image">
+          <label class="input-label">Imagen del Producto</label>
           
-          <div 
-            @click="triggerFileInput"
-            class="aspect-square w-full rounded-xl border-2 border-dashed border-slate-600 bg-white/5 hover:bg-white/10 hover:border-primary transition-all cursor-pointer flex flex-col items-center justify-center group relative overflow-hidden"
-          >
+          <div class="image-dropzone" @click="triggerFileInput">
             <img 
               v-if="imagePreview" 
               :src="imagePreview" 
-              class="absolute inset-0 w-full h-full object-cover z-0"
+              class="image-preview" 
             />
             
-            <div class="absolute inset-0 bg-background-dark/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"></div>
+            <div class="dropzone-overlay" :class="{ 'has-image': imagePreview }"></div>
             
-            <div class="flex flex-col items-center justify-center relative z-20 p-4 text-center" :class="{ 'opacity-0 group-hover:opacity-100': imagePreview }">
-              <div class="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg border border-slate-600">
-                <span class="material-symbols-outlined text-primary text-2xl">cloud_upload</span>
+            <div class="dropzone-content" :class="{ 'has-image': imagePreview }">
+              <div class="upload-icon-box">
+                <span class="material-symbols-outlined text-primary upload-icon">cloud_upload</span>
               </div>
-              <span class="text-sm font-medium text-slate-200">Clic para subir</span>
-              <span class="text-xs text-slate-500 mt-1">PNG, JPG hasta 2MB</span>
+              <span class="upload-title">Clic para subir</span>
+              <span class="upload-subtitle">PNG, JPG hasta 2MB</span>
             </div>
 
-            <input 
-              id="file-upload" 
-              type="file" 
-              accept="image/*" 
-              class="hidden" 
-              @change="handleFileChange"
-            />
+            <input id="file-upload" type="file" accept="image/*" class="hidden-input" @change="handleFileChange" />
           </div>
         </div>
 
-        <div class="w-full md:w-2/3 flex flex-col gap-5">
+        <div class="col-fields">
           
-          <div class="flex flex-col gap-2">
-            <label class="text-sm font-medium text-slate-300">Nombre del Producto</label>
-            <input v-model="product.name" type="text" class="glass-input w-full rounded-lg px-4 py-3 text-sm" placeholder="Ej: Taladro Bosch 500W" required />
+          <div class="input-group">
+            <BaseInput 
+              v-model="product.name" 
+              label="Nombre del Producto" 
+              placeholder="Ej: Taladro Bosch 500W"
+              required 
+            />
           </div>
           
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div class="flex flex-col gap-2">
-              <label class="text-sm font-medium text-slate-300">SKU / Código</label>
-              <div class="relative flex items-center">
-                <input v-model="product.sku" type="text" class="glass-input w-full rounded-lg pl-4 pr-12 py-3 text-sm uppercase tracking-wide" placeholder="VOR-0001" required />
-                <button type="button" class="absolute right-2 p-1.5 text-slate-400 hover:text-primary transition-colors">
-                  <span class="material-symbols-outlined text-[20px]">autorenew</span>
-                </button>
-              </div>
+          <div class="fields-row">
+            <div class="input-group">
+              <BaseInput 
+                v-model="product.sku" 
+                label="SKU / Código" 
+                placeholder="VOR-0001" 
+                class="uppercase-input"
+                required
+                actionIcon="autorenew"
+                actionTitle="Generar Automático"
+              />
             </div>
             
-            <div class="flex flex-col gap-2">
-              <label class="text-sm font-medium text-slate-300">Categoría</label>
-              <select v-model="product.category" class="glass-input w-full rounded-lg px-4 py-3 text-sm appearance-none cursor-pointer" required>
-                <option value="" disabled class="bg-slate-800">Seleccionar...</option>
-                <option value="herramientas" class="bg-slate-800">Herramientas</option>
-                <option value="materiales" class="bg-slate-800">Materiales</option>
-                <option value="servicios" class="bg-slate-800">Servicios</option>
-              </select>
+            <div class="input-group">
+              <BaseSelect 
+                v-model="product.category"
+                label="Categoría"
+                :options="[
+                  { value: 'herramientas', label: 'Herramientas' },
+                  { value: 'materiales', label: 'Materiales' },
+                  { value: 'servicios', label: 'Servicios' }
+                ]"
+                required
+              />
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div class="flex flex-col gap-2">
-              <label class="text-sm font-medium text-slate-300">Precio (BOB)</label>
-              <div class="relative">
-                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">Bs.</span>
-                <input v-model="product.price" type="number" step="0.01" class="glass-input w-full rounded-lg pl-10 pr-4 py-3 text-sm" placeholder="0.00" required />
-              </div>
+          <div class="fields-row">
+            <div class="input-group relative">
+              <BaseInput 
+                v-model="product.price" 
+                type="number" 
+                label="Precio (BOB)" 
+                placeholder="0.00" 
+                class="price-prefix-padding"
+                required
+              />
+              <span class="prefix-symbol" style="top: 38px;">Bs.</span>
             </div>
-            <div class="flex flex-col gap-2">
-              <label class="text-sm font-medium text-slate-300">Stock Inicial</label>
-              <input v-model="product.stock" type="number" class="glass-input w-full rounded-lg px-4 py-3 text-sm" placeholder="0" required />
+            
+            <div class="input-group">
+              <BaseInput 
+                v-model="product.stock" 
+                type="number" 
+                label="Stock Inicial" 
+                placeholder="0"
+                required 
+              />
             </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" style="font-size: 0.875rem; font-weight: 500; color: var(--color-text-muted);">Descripción</label>
+            <textarea v-model="product.description" rows="2" class="textarea" placeholder="Escribe los detalles aquí..."></textarea>
           </div>
 
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-3 mt-4 pt-6 border-t border-white/10">
-        <button 
-          type="button" 
-          @click="emit('update:isOpen', false)"
-          class="px-6 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
-        >
+      <div class="form-actions">
+        <BaseButton variant="ghost" @click="emit('update:isOpen', false)">
           Cancelar
-        </button>
-        <button 
-          type="submit" 
-          class="px-6 py-2.5 rounded-lg text-sm font-bold text-slate-900 bg-[#34d399] hover:bg-[#10b981] transition-colors shadow-lg flex items-center gap-2"
-        >
-          <span class="material-symbols-outlined text-[18px]">save</span>
+        </BaseButton>
+        <BaseButton variant="secondary" @click="handleSave">
+          <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
           Guardar Producto
-        </button>
+        </BaseButton>
       </div>
       
     </form>
@@ -151,17 +158,182 @@ const handleSave = () => {
 </template>
 
 <style scoped>
-/* Estilos extraídos de tu HTML para los inputs */
-.glass-input {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #f1f5f9;
+/* =========================================
+   LAYOUT DEL FORMULARIO
+   ========================================= */
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+@media (min-width: 768px) {
+  .form-layout { flex-direction: row; }
+  .col-image { width: 33.333%; }
+  .col-fields { width: 66.666%; display: flex; flex-direction: column; gap: 1.25rem; }
+}
+
+.fields-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .fields-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* =========================================
+   ZONA DE IMAGEN (DROPZONE)
+   ========================================= */
+.image-dropzone {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border: 2px dashed var(--color-border); /* border-slate-600 */
+  border-radius: var(--radius-lg); /* rounded-xl */
+  background-color: var(--color-table-header);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.image-dropzone:hover {
+  background-color: var(--color-row-hover);
+  border-color: var(--color-primary); /* primary/50 */
+}
+
+.image-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.dropzone-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-bg-surface);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 2;
+}
+
+.image-dropzone:hover .dropzone-overlay.has-image { opacity: 1; }
+
+.dropzone-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem;
+  transition: opacity 0.2s;
+}
+
+.dropzone-content.has-image { opacity: 0; }
+.image-dropzone:hover .dropzone-content.has-image { opacity: 1; }
+
+.upload-icon-box {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background-color: var(--color-bg-input); /* slate-800 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+  transition: transform 0.2s;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-border);
+}
+
+.image-dropzone:hover .upload-icon-box { transform: scale(1.1); }
+.upload-icon { font-size: 1.5rem; color: var(--color-primary); }
+
+.upload-title { font-size: 0.875rem; font-weight: 500; color: var(--color-text-main); }
+.upload-subtitle { font-size: 0.75rem; color: var(--color-text-muted); margin-top: 0.25rem; }
+
+.hidden-input { display: none; }
+.relative { position: relative; }
+
+/* Ajustes especiales para BaseInputs en este componente */
+:deep(.uppercase-input .vortex-input) {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-right: 2.5rem; /* Espacio par el botón */
+}
+:deep(.price-prefix-padding .vortex-input) {
+  padding-left: 2.5rem;
+}
+
+/* =========================================
+   INPUTS DE VIDRIO Y OTROS COMPONENTES
+   ========================================= */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem; /* Para móviles si se apila */
+}
+@media (min-width: 768px) { .input-group { margin-bottom: 0; } }
+
+.textarea { 
+  width: 100%;
+  background-color: var(--color-bg-input);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-main);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-family: inherit;
   transition: all 0.2s ease;
   outline: none;
+  resize: none; 
 }
-.glass-input:focus {
-  background: rgba(15, 23, 42, 0.8);
+.textarea:focus {
+  background-color: var(--color-bg-surface);
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 120, 229, 0.2);
 }
+.textarea::placeholder { color: var(--color-text-muted); }
+
+
+
+.prefix-symbol {
+  position: absolute;
+  left: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.glass-input.has-prefix { padding-left: 2.5rem; }
+
+/* =========================================
+   BOTONES DEL FOOTER
+   ========================================= */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+
 </style>
