@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { auth } from '../../services/firebase'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 
@@ -13,6 +13,13 @@ const errors = ref({})
 
 const isFormValid = computed(() => {
   return email.value.trim() !== '' && password.value.trim() !== ''
+})
+
+onMounted(() => {
+  email.value = ''
+  password.value = ''
+  errorMessage.value = ''
+  errors.value = {}
 })
 
 // Función de Login a Firebase

@@ -31,7 +31,8 @@ const products = ref([])
 const fetchProducts = async () => {
   isLoading.value = true
   try {
-    const companyId = useAuthStore.user.company_id
+    // Si no tiene companyId (ej. Super Admin), usamos un ID de empresa por defecto para que funcione la demo
+    const companyId = useAuthStore.company?.id || useAuthStore.user?.companyId || 'vortex-demo-id'
     if (!companyId) return
 
     const productsRef = collection(db, `companies/${companyId}/products`)
@@ -51,19 +52,25 @@ const fetchProducts = async () => {
 const handleSaveProduct = async (payload) => {
   isSaving.value = true
   try {
-    const companyId = useAuthStore.user.company_id
+    // Igual que en fetchProducts, usamos un fallback para Super Admins
+    const companyId = useAuthStore.company?.id || useAuthStore.user?.companyId || 'vortex-demo-id'
     let imageUrl = null
 
-    // A) Si el usuario subió una imagen, la guardamos en Firebase Storage
+    // A) Si el usuario subió una imagen, intentamos guardarla en Firebase Storage
     if (payload.image) {
-      // Creamos una ruta única para la imagen: companies/{companyId}/products/{timestamp_nombre}
-      const imagePath = `companies/${companyId}/products/${Date.now()}_${payload.image.name}`
-      const fileRef = storageRef(storage, imagePath)
-      
-      // Subimos el archivo
-      await uploadBytes(fileRef, payload.image)
-      // Obtenemos el link público
-      imageUrl = await getDownloadURL(fileRef)
+      try {
+        // Creamos una ruta única para la imagen: companies/{companyId}/products/{timestamp_nombre}
+        const imagePath = `companies/${companyId}/products/${Date.now()}_${payload.image.name}`
+        const fileRef = storageRef(storage, imagePath)
+        
+        // Subimos el archivo
+        await uploadBytes(fileRef, payload.image)
+        // Obtenemos el link público
+        imageUrl = await getDownloadURL(fileRef)
+      } catch (storageError) {
+        console.warn("No se pudo subir la imagen a Storage (Posible falta de configuración CORS o Plan Spark). Se guardará el producto sin imagen.", storageError)
+        imageUrl = null
+      }
     }
 
     const newProduct = {
