@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { auth } from '../../services/firebase'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 
@@ -9,13 +9,27 @@ const password = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 const showPassword = ref(false)
+const errors = ref({})
+
+const isFormValid = computed(() => {
+  return email.value.trim() !== '' && password.value.trim() !== ''
+})
 
 // Función de Login a Firebase
 const handleLogin = async () => {
-  if (!email.value || !password.value) {
-    errorMessage.value = "Por favor, ingresa correo y contraseña."
-    return
+  errors.value = {}
+  let hasError = false
+  
+  if (!email.value) {
+    errors.value.email = 'El correo es requerido'
+    hasError = true
   }
+  if (!password.value) {
+    errors.value.password = 'La contraseña es requerida'
+    hasError = true
+  }
+  
+  if (hasError) return
 
   try {
     loading.value = true
@@ -130,7 +144,7 @@ const handleLogin = async () => {
           
           <div class="input-group">
             <label for="email">Correo Electrónico</label>
-            <div class="input-wrapper">
+            <div class="input-wrapper" :class="{ 'has-error': errors.email }">
               <span class="material-symbols-outlined input-icon">mail</span>
               <input 
                 id="email" 
@@ -142,6 +156,7 @@ const handleLogin = async () => {
                 :disabled="loading"
               />
             </div>
+            <p v-if="errors.email" class="error-msg">{{ errors.email }}</p>
           </div>
 
           <div class="input-group">
@@ -149,7 +164,7 @@ const handleLogin = async () => {
               <label for="password">Contraseña</label>
               <a href="#" class="forgot-link">¿Olvidaste tu contraseña?</a>
             </div>
-            <div class="input-wrapper">
+            <div class="input-wrapper" :class="{ 'has-error': errors.password }">
               <span class="material-symbols-outlined input-icon">lock</span>
               <input 
                 id="password" 
@@ -169,9 +184,10 @@ const handleLogin = async () => {
                 </span>
               </button>
             </div>
+            <p v-if="errors.password" class="error-msg">{{ errors.password }}</p>
           </div>
 
-          <button type="submit" class="submit-btn" :disabled="loading">
+          <button type="submit" class="submit-btn" :disabled="loading || !isFormValid">
             <span v-if="loading" class="spinner"></span>
             <span v-else class="material-symbols-outlined btn-icon">arrow_forward</span>
             {{ loading ? 'Verificando...' : 'Ingresar al Sistema' }}
@@ -572,6 +588,16 @@ const handleLogin = async () => {
   margin-bottom: 0.5rem;
 }
 .error-icon { font-size: 1.25rem; }
+
+.input-wrapper.has-error .vortex-input {
+  border-color: var(--color-danger);
+  background-color: rgba(239, 68, 68, 0.05);
+}
+.error-msg {
+  font-size: 0.75rem;
+  color: var(--color-danger);
+  margin-top: 0.25rem;
+}
 
 /* Footer */
 .form-footer {

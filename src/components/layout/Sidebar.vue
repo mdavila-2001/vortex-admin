@@ -4,6 +4,10 @@ import { useRouter, useRoute } from 'vue-router'
 import { auth } from '../../services/firebase'
 import { signOut } from 'firebase/auth'
 import { useAuthStore } from '../../store/auth'
+import { ref } from 'vue'
+
+import BaseModal from '../core/BaseModal.vue'
+import BaseButton from '../core/BaseButton.vue'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false }
@@ -18,11 +22,22 @@ watch(() => route.path, () => {
   emit('close')
 })
 
-const handleLogout = async () => {
+const isLogoutModalOpen = ref(false)
+
+const handleLogoutClick = () => {
+  isLogoutModalOpen.value = true
+}
+
+const handleConfirmLogout = async () => {
   try {
     await signOut(auth)
+    // El onAuthStateChanged en App.vue o auth.js ya se encarga de limpiar el estado
+    // y aquí forzamos la redirección
+    router.push('/')
   } catch (error) {
     console.error("Error al salir:", error)
+  } finally {
+    isLogoutModalOpen.value = false
   }
 }
 </script>
@@ -89,7 +104,7 @@ const handleLogout = async () => {
         </nav>
 
         <div class="user-profile-mini">
-          <button class="user-btn" @click="handleLogout" title="Cerrar Sesión">
+          <button class="user-btn" @click="handleLogoutClick" title="Cerrar Sesión">
             <div class="avatar-box">
               <span class="material-symbols-outlined text-slate-400">person</span>
               <div class="status-dot"></div>
@@ -150,7 +165,7 @@ const handleLogout = async () => {
       </nav>
 
       <div class="user-profile-mini">
-        <button class="user-btn" @click="handleLogout" title="Cerrar Sesión">
+        <button class="user-btn" @click="handleLogoutClick" title="Cerrar Sesión">
           <div class="avatar-box">
             <span class="material-symbols-outlined text-slate-400">person</span>
             <div class="status-dot"></div>
@@ -164,6 +179,25 @@ const handleLogout = async () => {
       </div>
     </div>
   </aside>
+
+  <!-- Modal de Confirmación de Cierre de Sesión -->
+  <BaseModal 
+    v-model:isOpen="isLogoutModalOpen" 
+    title="Cerrar Sesión"
+  >
+    <div style="padding: 1rem 0; color: white;">
+      <p>¿Estás seguro que deseas cerrar la sesión actual?</p>
+      
+      <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 1.5rem;">
+        <BaseButton variant="ghost" @click="isLogoutModalOpen = false">
+          Cancelar
+        </BaseButton>
+        <BaseButton variant="danger" @click="handleConfirmLogout">
+          Sí, Cerrar Sesión
+        </BaseButton>
+      </div>
+    </div>
+  </BaseModal>
 </template>
 
 <style scoped>

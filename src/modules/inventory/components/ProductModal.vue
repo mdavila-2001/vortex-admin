@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import BaseModal from '../../../components/core/BaseModal.vue'
 import BaseInput from '../../../components/core/BaseInput.vue'
 import BaseSelect from '../../../components/core/BaseSelect.vue'
@@ -11,12 +11,15 @@ const props = defineProps({
 
 const emit = defineEmits(['update:isOpen', 'save'])
 
+const errors = ref({})
+
 const product = ref({
   name: '',
   sku: '',
   category: '',
   price: null,
   stock: null,
+  min_stock_alert: 5,
   description: ''
 })
 
@@ -35,7 +38,48 @@ const handleFileChange = (event) => {
   }
 }
 
+const isFormValid = computed(() => {
+  return (
+    product.value.name.trim() !== '' &&
+    product.value.sku.trim() !== '' &&
+    product.value.category !== '' &&
+    product.value.price !== null && product.value.price !== '' &&
+    product.value.stock !== null && product.value.stock !== '' &&
+    product.value.min_stock_alert !== null && product.value.min_stock_alert !== ''
+  )
+})
+
 const handleSave = () => {
+  errors.value = {}
+  let hasError = false
+  
+  if (!product.value.name) {
+    errors.value.name = 'El nombre es requerido'
+    hasError = true
+  }
+  if (!product.value.sku) {
+    errors.value.sku = 'El SKU es requerido'
+    hasError = true
+  }
+  if (!product.value.category) {
+    errors.value.category = 'La categoría es requerida'
+    hasError = true
+  }
+  if (product.value.price === null || product.value.price === '') {
+    errors.value.price = 'El precio es requerido'
+    hasError = true
+  }
+  if (product.value.stock === null || product.value.stock === '') {
+    errors.value.stock = 'El stock es requerido'
+    hasError = true
+  }
+  if (product.value.min_stock_alert === null || product.value.min_stock_alert === '') {
+    errors.value.min_stock_alert = 'La alerta de stock es requerida'
+    hasError = true
+  }
+
+  if (hasError) return
+
   emit('save', { data: product.value, image: imageFile.value })
 }
 </script>
@@ -80,7 +124,7 @@ const handleSave = () => {
               v-model="product.name" 
               label="Nombre del Producto" 
               placeholder="Ej: Taladro Bosch 500W"
-              required 
+              :error="errors.name"
             />
           </div>
           
@@ -91,7 +135,7 @@ const handleSave = () => {
                 label="SKU / Código" 
                 placeholder="VOR-0001" 
                 class="uppercase-input"
-                required
+                :error="errors.sku"
                 actionIcon="autorenew"
                 actionTitle="Generar Automático"
               />
@@ -106,7 +150,7 @@ const handleSave = () => {
                   { value: 'materiales', label: 'Materiales' },
                   { value: 'servicios', label: 'Servicios' }
                 ]"
-                required
+                :error="errors.category"
               />
             </div>
           </div>
@@ -119,7 +163,7 @@ const handleSave = () => {
                 label="Precio (BOB)" 
                 placeholder="0.00" 
                 class="price-prefix-padding"
-                required
+                :error="errors.price"
               />
               <span class="prefix-symbol" style="top: 38px;">Bs.</span>
             </div>
@@ -130,9 +174,22 @@ const handleSave = () => {
                 type="number" 
                 label="Stock Inicial" 
                 placeholder="0"
-                required 
+                :error="errors.stock"
               />
             </div>
+          </div>
+
+          <div class="fields-row">
+            <div class="input-group">
+              <BaseInput 
+                v-model="product.min_stock_alert" 
+                type="number" 
+                label="Alerta Min. Stock" 
+                placeholder="5"
+                :error="errors.min_stock_alert"
+              />
+            </div>
+            <div></div> <!-- Empty div to keep the layout in the left column on desktop -->
           </div>
 
           <div class="input-group">
@@ -147,7 +204,7 @@ const handleSave = () => {
         <BaseButton variant="ghost" @click="emit('update:isOpen', false)">
           Cancelar
         </BaseButton>
-        <BaseButton variant="secondary" @click="handleSave">
+        <BaseButton variant="secondary" @click="handleSave" :disabled="!isFormValid">
           <span class="material-symbols-outlined" style="font-size: 18px;">save</span>
           Guardar Producto
         </BaseButton>

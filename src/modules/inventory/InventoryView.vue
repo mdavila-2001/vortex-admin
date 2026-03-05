@@ -1,18 +1,20 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import BaseButton from '../../components/core/BaseButton.vue'
 import BaseInput from '../../components/core/BaseInput.vue'
 import BaseTable from '../../components/core/BaseTable.vue'
 import BaseBadge from '../../components/core/BaseBadge.vue'
-
-// 1. IMPORTAMOS NUESTRO NUEVO MODAL
 import ProductModal from './components/ProductModal.vue'
 
-// 2. ESTADO PARA CONTROLAR SI EL MODAL ESTÁ ABIERTO O CERRADO
-const isModalOpen = ref(false)
+import { db, storage } from '../../services/firebase'
+import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore'
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { useAuthStore } from '../../store/auth'
 
-// Estado de la búsqueda
+const isModalOpen = ref(false)
 const searchQuery = ref('')
+const isLoading = ref(true)
+const isSaving = ref(false)
 
 // Configuración de las columnas de la tabla
 const tableHeaders = [
@@ -24,33 +26,93 @@ const tableHeaders = [
   { key: 'actions', label: 'Acciones', align: 'right' }
 ]
 
-// Datos de prueba (Mock Data) simulando la ferretería
-const products = ref([
-  { id: '1', sku: 'TLD-001', name: 'Taladro Bosch 500W', price: 850.00, stock: 15, min_stock: 5, is_service: false },
-  { id: '2', sku: 'BRC-010', name: 'Broca de Acero 1/4', price: 15.50, stock: 120, min_stock: 20, is_service: false },
-  { id: '3', sku: 'CMT-050', name: 'Cemento Fancesa 50kg', price: 55.00, stock: 3, min_stock: 50, is_service: false },
-  { id: '4', sku: 'SRV-001', name: 'Servicio de Flete (Camioneta)', price: 100.00, stock: null, min_stock: 0, is_service: true }
-])
+const products = ref([])
 
-// Lógica visual para las etiquetas (Badges)
+const fetchProducts = async () => {
+  isLoading.value = true
+  try {
+    const companyId = useAuthStore.user.company_id
+    if (!companyId) return
+
+    const productsRef = collection(db, `companies/${companyId}/products`)
+    const snapshot = await getDocs(productsRef)
+    
+    products.value = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+  } catch (error) {
+    console.error("Error obteniendo productos:", error)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const handleSaveProduct = async (payload) => {
+  isSaving.value = true
+  try {
+    const companyId = useAuthStore.user.company_id
+    let imageUrl = null
+
+    // A) Si el usuario subió una imagen, la guardamos en Firebase Storage
+    if (payload.image) {
+      // Creamos una ruta única para la imagen: companies/{companyId}/products/{timestamp_nombre}
+      const imagePath = `companies/${companyId}/products/${Date.now()}_${payload.image.name}`
+      const fileRef = storageRef(storage, imagePath)
+      
+      // Subimos el archivo
+      await uploadBytes(fileRef, payload.image)
+      // Obtenemos el link público
+      imageUrl = await getDownloadURL(fileRef)
+    }
+
+    const newProduct = {
+      name: payload.data.name,
+      sku: payload.data.sku.toUpperCase(),
+      category_id: payload.data.category,
+      price_sale: Number(payload.data.price),
+      is_service: payload.data.category === 'servicios',
+      min_stock_alert: Number(payload.data.min_stock_alert) || 5,
+      image_url: imageUrl,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+      deleted_at: null
+    }
+
+    const productsRef = collection(db, `companies/${companyId}/products`)
+    const docRef = await addDoc(productsRef, newProduct)
+
+    products.value.push({
+      id: docRef.id,
+      ...newProduct,
+      stock: payload.data.category === 'servicios' ? null : Number(payload.data.stock) 
+    })
+
+    isModalOpen.value = false
+    alert("¡Producto guardado exitosamente!")
+
+  } catch (error) {
+    console.error("Error al guardar el producto:", error)
+    alert("Ocurrió un error al guardar. Revisa la consola.")
+  } finally {
+    isSaving.value = false
+  }
+}
+
 const getStockBadge = (product) => {
   if (product.is_service) return { variant: 'info', text: 'Servicio' }
-  if (product.stock <= 0) return { variant: 'danger', text: 'Sin Stock' }
-  if (product.stock <= product.min_stock) return { variant: 'warning', text: 'Stock Bajo' }
+  const currentStock = product.stock || 0
+  const minStock = product.min_stock_alert || 5
+  
+  if (currentStock <= 0) return { variant: 'danger', text: 'Sin Stock' }
+  if (currentStock <= minStock) return { variant: 'warning', text: 'Stock Bajo' }
   return { variant: 'success', text: 'Óptimo' }
 }
 
-// 3. FUNCIÓN QUE SE EJECUTA CUANDO EL MODAL DICE "GUARDAR"
-const handleSaveProduct = (payload) => {
-  console.log("Datos recibidos del formulario:", payload.data)
-  console.log("Imagen recibida:", payload.image)
-  
-  // Por ahora, solo cerramos el modal. 
-  // ¡Aquí es donde luego conectaremos Firebase!
-  isModalOpen.value = false
-  
-  alert("Producto listo para guardar (Revisa la consola F12)")
-}
+onMounted(() => {
+  fetchProducts()
+})
+
 </script>
 
 <template>
@@ -84,7 +146,24 @@ const handleSaveProduct = (payload) => {
       </div>
     </div>
 
-    <div class="table-wrapper">
+    <div v-if="isLoading" class="flex justify-center items-center py-12">
+      <span class="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="products.length === 0" class="empty-state">
+      <div class="empty-state-icon">
+        <span class="material-symbols-outlined">inventory_2</span>
+      </div>
+      <h3 class="empty-state-title">Aún no tienes productos</h3>
+      <p class="empty-state-desc">Agrega tu primer producto o servicio para empezar a gestionar tu inventario.</p>
+      <BaseButton size="md" @click="isModalOpen = true" class="mt-4">
+        <span class="material-symbols-outlined mr-2" style="font-size: 18px;">add</span>
+        Nuevo Producto
+      </BaseButton>
+    </div>
+
+    <div v-else class="table-wrapper">
       <BaseTable :headers="tableHeaders">
         <tr v-for="item in products" :key="item.id" class="vortex-tr">
           <td class="vortex-td font-mono text-slate-400">{{ item.sku }}</td>
@@ -98,7 +177,7 @@ const handleSaveProduct = (payload) => {
           </td>
           
           <td class="vortex-td text-right font-medium text-white">
-            Bs. {{ item.price.toFixed(2) }}
+            Bs. {{ item.price_sale ? item.price_sale.toFixed(2) : '0.00' }}
           </td>
           
           <td class="vortex-td text-center">
@@ -137,12 +216,25 @@ const handleSaveProduct = (payload) => {
 </template>
 
 <style scoped>
-/* (Mantén los mismos estilos que ya tenías en InventoryView.vue) */
 .inventory-container { display: flex; flex-direction: column; gap: 1.5rem; height: 100%; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-start; }
 .page-title { font-size: 1.5rem; font-weight: 700; color: white; margin-bottom: 0.25rem; }
 .page-subtitle { color: var(--color-text-muted); font-size: 0.875rem; }
-.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; background-color: var(--color-bg-surface); border: 1px solid var(--color-border-subtle); padding: 1rem; border-radius: var(--radius-lg); }
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  text-align: center;
+  margin-top: 1rem;
+  border: 1px solid var(--color-border-subtle);
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+}
 .search-box { flex: 1; max-width: 400px; }
 .table-wrapper { background-color: var(--color-table-header); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); overflow: hidden; }
 .vortex-tr { border-bottom: 1px solid var(--color-border-subtle); transition: background-color 0.2s; }
@@ -158,4 +250,58 @@ const handleSaveProduct = (payload) => {
 .icon-btn .material-symbols-outlined { font-size: 1.25rem; }
 .hover-primary:hover { color: var(--color-primary); background-color: var(--color-primary-bg); }
 .hover-danger:hover { color: var(--color-danger); background-color: var(--color-danger-bg); }
+
+/* Empty State Styles */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  height: 100%;
+  
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.empty-state-icon {
+  width: 64px;
+  height: 64px;
+  
+  /* Glassmorphism icon background */
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-muted);
+}
+
+.empty-state-icon .material-symbols-outlined {
+  font-size: 32px;
+}
+
+.empty-state-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.5rem;
+}
+
+.empty-state-desc {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  max-width: 400px;
+  margin-bottom: 1rem;
+}
 </style>
