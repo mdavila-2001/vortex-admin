@@ -1,22 +1,24 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+// Componentes UI
 import BaseButton from '../../components/core/BaseButton.vue'
 import BaseInput from '../../components/core/BaseInput.vue'
 import BaseTable from '../../components/core/BaseTable.vue'
 import BaseBadge from '../../components/core/BaseBadge.vue'
 import ProductModal from './components/ProductModal.vue'
 
-import { db, storage } from '../../services/firebase'
+// Firebase
+import { db } from '../../services/firebase'
 import { collection, getDocs, addDoc, serverTimestamp } from 'firebase/firestore'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useAuthStore } from '../../store/auth'
 
 const isModalOpen = ref(false)
 const searchQuery = ref('')
-const isLoading = ref(true)
+const isLoading = ref(false)
 const isSaving = ref(false)
 
-// Configuración de las columnas de la tabla
+const products = ref([])
+
 const tableHeaders = [
   { key: 'sku', label: 'SKU / Código' },
   { key: 'name', label: 'Producto' },
@@ -26,16 +28,13 @@ const tableHeaders = [
   { key: 'actions', label: 'Acciones', align: 'right' }
 ]
 
-const products = ref([])
-
+// 1. CARGAR PRODUCTOS
 const fetchProducts = async () => {
+  if (!useAuthStore.user?.company_id) return
+  
   isLoading.value = true
   try {
-    // Si no tiene companyId (ej. Super Admin), usamos un ID de empresa por defecto para que funcione la demo
-    const companyId = useAuthStore.company?.id || useAuthStore.user?.companyId || 'vortex-demo-id'
-    if (!companyId) return
-
-    const productsRef = collection(db, `companies/${companyId}/products`)
+    const productsRef = collection(db, `companies/${useAuthStore.user.company_id}/products`)
     const snapshot = await getDocs(productsRef)
     
     products.value = snapshot.docs.map(doc => ({
@@ -43,83 +42,92 @@ const fetchProducts = async () => {
       ...doc.data()
     }))
   } catch (error) {
-    console.error("Error obteniendo productos:", error)
+    console.error("Error al cargar productos:", error)
   } finally {
     isLoading.value = false
   }
 }
 
+// 2. GUARDAR PRODUCTO + CLOUDINARY
 const handleSaveProduct = async (payload) => {
   isSaving.value = true
   try {
-    // Igual que en fetchProducts, usamos un fallback para Super Admins
-    const companyId = useAuthStore.company?.id || useAuthStore.user?.companyId || 'vortex-demo-id'
+    const companyId = useAuthStore.user?.company_id
+    if (!companyId) throw new Error("No se encontró la empresa del usuario")
+
     let imageUrl = null
 
-    // A) Si el usuario subió una imagen, intentamos guardarla en Firebase Storage
+    // A) SUBIR IMAGEN A CLOUDINARY (Si el usuario seleccionó una)
     if (payload.image) {
-      try {
-        // Creamos una ruta única para la imagen: companies/{companyId}/products/{timestamp_nombre}
-        const imagePath = `companies/${companyId}/products/${Date.now()}_${payload.image.name}`
-        const fileRef = storageRef(storage, imagePath)
-        
-        // Subimos el archivo
-        await uploadBytes(fileRef, payload.image)
-        // Obtenemos el link público
-        imageUrl = await getDownloadURL(fileRef)
-      } catch (storageError) {
-        console.warn("No se pudo subir la imagen a Storage (Posible falta de configuración CORS o Plan Spark). Se guardará el producto sin imagen.", storageError)
-        imageUrl = null
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+      
+      // Preparamos el "paquete" para enviar a Cloudinary
+      const formData = new FormData()
+      formData.append('file', payload.image)
+      formData.append('upload_preset', uploadPreset)
+
+      console.log("Subiendo imagen a Cloudinary...")
+      const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!cloudinaryResponse.ok) {
+        throw new Error("Error al subir la imagen a Cloudinary")
       }
+
+      const cloudinaryData = await cloudinaryResponse.json()
+      imageUrl = cloudinaryData.secure_url // ¡Aquí está nuestro link público!
+      console.log("Imagen subida con éxito:", imageUrl)
     }
 
+    // B) GUARDAR EN FIRESTORE
     const newProduct = {
       name: payload.data.name,
       sku: payload.data.sku.toUpperCase(),
-      category_id: payload.data.category,
-      price_sale: Number(payload.data.price),
-      is_service: payload.data.category === 'servicios',
-      min_stock_alert: Number(payload.data.min_stock_alert) || 5,
-      image_url: imageUrl,
+      category: payload.data.category,
+      price: Number(payload.data.price),
+      stock: Number(payload.data.stock) || 0,
+      description: payload.data.description || '',
+      image_url: imageUrl, // Guardamos el link de Cloudinary (o null)
       created_at: serverTimestamp(),
-      updated_at: serverTimestamp(),
-      deleted_at: null
+      updated_at: serverTimestamp()
     }
 
+    console.log("Guardando en Firestore...", newProduct)
     const productsRef = collection(db, `companies/${companyId}/products`)
     const docRef = await addDoc(productsRef, newProduct)
 
+    // C) ACTUALIZAR LA TABLA VISUALMENTE
     products.value.push({
       id: docRef.id,
-      ...newProduct,
-      stock: payload.data.category === 'servicios' ? null : Number(payload.data.stock) 
+      ...newProduct
     })
 
     isModalOpen.value = false
-    alert("¡Producto guardado exitosamente!")
+    alert("¡Producto creado con éxito!")
 
   } catch (error) {
-    console.error("Error al guardar el producto:", error)
-    alert("Ocurrió un error al guardar. Revisa la consola.")
+    console.error("Error en el proceso:", error)
+    alert("Hubo un error al guardar el producto. Revisa la consola.")
   } finally {
     isSaving.value = false
   }
 }
 
+// Helper visual para la tabla
 const getStockBadge = (product) => {
-  if (product.is_service) return { variant: 'info', text: 'Servicio' }
-  const currentStock = product.stock || 0
-  const minStock = product.min_stock_alert || 5
-  
-  if (currentStock <= 0) return { variant: 'danger', text: 'Sin Stock' }
-  if (currentStock <= minStock) return { variant: 'warning', text: 'Stock Bajo' }
+  if (product.category === 'servicios') return { variant: 'info', text: 'Servicio' }
+  if (product.stock <= 0) return { variant: 'danger', text: 'Sin Stock' }
+  if (product.stock <= 5) return { variant: 'warning', text: 'Stock Bajo' }
   return { variant: 'success', text: 'Óptimo' }
 }
 
 onMounted(() => {
-  fetchProducts()
+  // Esperamos un poco para asegurar que Auth haya cargado (opcional, dependiendo de tu App.vue)
+  setTimeout(() => fetchProducts(), 500)
 })
-
 </script>
 
 <template>
